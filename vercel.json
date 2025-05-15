@@ -1,30 +1,33 @@
 {
   "version": 2,
-  "buildCommand": "chmod +x build.sh && ./build.sh",
-  "installCommand": "npm install && npm install @rollup/rollup-linux-x64-gnu@4.9.6",
+  "buildCommand": "npm run build:client",
+  "installCommand": "npm install",
   "builds": [
     {
-      "src": "server/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["server/**", "shared/**"],
-        "nodeVersion": "22.x",
-        "maxDuration": 10
-      }
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     },
     {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "chmod +x build.sh && ./build.sh",
+        "buildCommand": "npm run build:client",
         "outputDirectory": "dist/public"
       }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server/index.js"
+      "src": "/api/weather/current",
+      "dest": "/api/weather/current.js"
+    },
+    {
+      "src": "/api/weather/history",
+      "dest": "/api/weather/history.js"
+    },
+    {
+      "src": "/api/weather",
+      "dest": "/api/weather.js"
     },
     {
       "handle": "filesystem"
