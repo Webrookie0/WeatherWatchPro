@@ -19,6 +19,13 @@ export const weatherData = pgTable("weather_data", {
 export const insertWeatherDataSchema = createInsertSchema(weatherData).omit({
   id: true,
   timestamp: true,
+}).extend({
+  // Allow number values for these fields instead of string
+  temperature_dht: z.number(),
+  temperature_bmp: z.number().optional(),
+  humidity: z.number(),
+  pressure: z.number().optional(),
+  signal_strength: z.number().optional(),
 });
 
 // Types
