@@ -38,18 +38,15 @@ export default async function handler(req, res) {
   }
   
   try {
-    const hours = req.query.hours ? parseInt(req.query.hours) : 24;
+    const hours = req.query.hours ? parseInt(req.query.hours, 10) : 24;
     
     if (isNaN(hours) || hours <= 0 || hours > 72) {
       return res.status(400).json({ message: "Hours must be a number between 1 and 72" });
     }
     
-    // Create a sql tagged template for the interval value
-    const intervalValue = sql`${hours} hours`;
-
     const result = await sql`
       SELECT * FROM weather_data
-      WHERE timestamp > NOW() - INTERVAL ${intervalValue}
+      WHERE timestamp > NOW() - INTERVAL '${hours} hours'
       ORDER BY timestamp ASC
     `;
     
