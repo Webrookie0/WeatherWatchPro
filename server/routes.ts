@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
-import { storage } from "./storage";
+// import { createServer, type Server } from "http"; // Not needed after refactor
+import { storage } from "./storage.js"; // Added .js
 import { insertWeatherDataSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -65,7 +66,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  const httpServer = createServer(app);
-  
-  return httpServer;
+  // const httpServer = createServer(app); // This was supposed to be removed
+  // return httpServer; // This was supposed to be removed
 }
