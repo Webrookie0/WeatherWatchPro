@@ -41,13 +41,16 @@ export default function Home() {
       setLastUpdate(new Date());
     }
   }, [currentData]);
+  
+  // No sensor reading indicator
+  const noSensorData = !currentData || isLoadingCurrent;
 
   // Calculate comfort level based on temperature and humidity
   const getComfortLevel = () => {
     if (!currentData) return "Unknown";
     
-    const temp = currentData.temperature_dht;
-    const humidity = currentData.humidity;
+    const temp = Number(currentData.temperature_dht);
+    const humidity = Number(currentData.humidity);
     
     if (temp < 18) return "Cold";
     if (temp > 28) return "Hot";
@@ -60,7 +63,7 @@ export default function Home() {
   const getHumidityStatus = () => {
     if (!currentData) return "Unknown";
     
-    const humidity = currentData.humidity;
+    const humidity = Number(currentData.humidity);
     
     if (humidity < 30) return "Very Dry";
     if (humidity < 40) return "Dry";
@@ -73,8 +76,8 @@ export default function Home() {
   const getPressureTrend = () => {
     if (!historicalData || historicalData.length < 2) return "Unknown";
     
-    const latest = historicalData[historicalData.length - 1].pressure;
-    const previous = historicalData[historicalData.length - 2].pressure;
+    const latest = historicalData[historicalData.length - 1].pressure ? Number(historicalData[historicalData.length - 1].pressure) : 0;
+    const previous = historicalData[historicalData.length - 2].pressure ? Number(historicalData[historicalData.length - 2].pressure) : 0;
     
     if (Math.abs(latest - previous) < 1) return "Stable";
     return latest > previous ? "Rising" : "Falling";
@@ -82,9 +85,9 @@ export default function Home() {
 
   // Get weather indication based on pressure and trend
   const getWeatherIndication = () => {
-    if (!currentData) return "Unknown";
+    if (!currentData || !currentData.pressure) return "Unknown";
     
-    const pressure = currentData.pressure;
+    const pressure = Number(currentData.pressure);
     const trend = getPressureTrend();
     
     if (pressure > 1022 && trend === "Rising") return "Clear Weather";
@@ -113,21 +116,21 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <TemperatureCard 
             sensor="DHT11" 
-            temperature={currentData?.temperature_dht} 
+            temperature={currentData?.temperature_dht ? Number(currentData.temperature_dht) : undefined} 
             isLoading={isLoadingCurrent} 
           />
           <TemperatureCard 
             sensor="BMP180" 
-            temperature={currentData?.temperature_bmp} 
+            temperature={currentData?.temperature_bmp ? Number(currentData.temperature_bmp) : undefined} 
             isLoading={isLoadingCurrent} 
             sensorType="secondary"
           />
           <HumidityCard 
-            humidity={currentData?.humidity} 
+            humidity={currentData?.humidity ? Number(currentData.humidity) : undefined} 
             isLoading={isLoadingCurrent} 
           />
           <PressureCard 
-            pressure={currentData?.pressure} 
+            pressure={currentData?.pressure ? Number(currentData.pressure) : undefined} 
             isLoading={isLoadingCurrent} 
           />
         </div>

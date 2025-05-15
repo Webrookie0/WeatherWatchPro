@@ -1,4 +1,6 @@
-import { InsertWeatherData, WeatherData } from "@shared/schema";
+import { InsertWeatherData, WeatherData, weatherData } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, gte } from "drizzle-orm";
 
 export interface IStorage {
   saveWeatherData(data: InsertWeatherData): Promise<WeatherData>;
@@ -6,53 +8,41 @@ export interface IStorage {
   getHistoricalData(hours: number): Promise<WeatherData[]>;
 }
 
-export class MemStorage implements IStorage {
-  private weatherData: WeatherData[];
-  private currentId: number;
-
-  constructor() {
-    this.weatherData = [];
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async saveWeatherData(data: InsertWeatherData): Promise<WeatherData> {
-    const id = this.currentId++;
-    const timestamp = new Date();
-    
-    const weatherData: WeatherData = {
-      id,
-      ...data,
-      timestamp,
-    };
-    
-    // Add to the beginning of the array for efficient recent data retrieval
-    this.weatherData.unshift(weatherData);
-    
-    // Keep only the last 1000 entries (about 8 hours if updated every 30 seconds)
-    if (this.weatherData.length > 1000) {
-      this.weatherData = this.weatherData.slice(0, 1000);
-    }
-    
-    return weatherData;
+    // Insert the data into the database
+    const [result] = await db
+      .insert(weatherData)
+      .values([data])
+      .returning();
+      
+    return result;
   }
 
   async getCurrentWeatherData(): Promise<WeatherData | undefined> {
-    // Return the most recent data
-    return this.weatherData[0];
+    // Get the most recent data
+    const results = await db
+      .select()
+      .from(weatherData)
+      .orderBy(desc(weatherData.timestamp))
+      .limit(1);
+      
+    return results.length > 0 ? results[0] : undefined;
   }
 
   async getHistoricalData(hours: number = 24): Promise<WeatherData[]> {
     const now = new Date();
     const earliestTime = new Date(now.getTime() - hours * 60 * 60 * 1000);
     
-    // Filter data within the requested time range
-    const filteredData = this.weatherData.filter(
-      data => data.timestamp > earliestTime
-    );
-    
-    // We want the data ordered from oldest to newest for charts
-    return [...filteredData].reverse();
+    // Get data within the time range
+    const results = await db
+      .select()
+      .from(weatherData)
+      .where(gte(weatherData.timestamp, earliestTime))
+      .orderBy(weatherData.timestamp);
+      
+    return results;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
