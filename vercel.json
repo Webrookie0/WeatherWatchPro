@@ -1,20 +1,21 @@
 {
   "version": 2,
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "chmod +x build.sh && ./build.sh",
   "installCommand": "npm install && npm install @rollup/rollup-linux-x64-gnu@4.9.6",
   "builds": [
     {
       "src": "server/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["server/**", "shared/**"]
+        "includeFiles": ["server/**", "shared/**"],
+        "nodeVersion": "18.x"
       }
     },
     {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "npm run vercel-build",
+        "buildCommand": "chmod +x build.sh && ./build.sh",
         "outputDirectory": "dist/public"
       }
     }
@@ -31,5 +32,11 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "server/index.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 } 
