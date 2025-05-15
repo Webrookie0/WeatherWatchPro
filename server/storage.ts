@@ -10,20 +10,19 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async saveWeatherData(data: InsertWeatherData): Promise<WeatherData> {
-    // Convert numeric fields to strings for database compatibility
-    const dataToInsert = {
-      ...data,
-      temperature_dht: String(data.temperature_dht),
-      humidity: String(data.humidity),
-      ...(data.temperature_bmp !== undefined && { temperature_bmp: String(data.temperature_bmp) }),
-      ...(data.pressure !== undefined && { pressure: String(data.pressure) }),
-      ...(data.signal_strength !== undefined && { signal_strength: String(data.signal_strength) }),
-    };
+    // Drizzle should handle number to numeric conversion for PostgreSQL.
+    // const dataToInsert = {
+    //   ...data,
+    //   temperature_dht: String(data.temperature_dht),
+    //   humidity: String(data.humidity),
+    //   ...(data.temperature_bmp !== undefined && { temperature_bmp: String(data.temperature_bmp) }),
+    //   ...(data.pressure !== undefined && { pressure: String(data.pressure) }),
+    //   ...(data.signal_strength !== undefined && { signal_strength: String(data.signal_strength) }),
+    // };
     
-    // Insert the data into the database
     const [result] = await db
       .insert(weatherData)
-      .values([dataToInsert])
+      .values([data]) // Use original data with numbers
       .returning();
       
     return result;

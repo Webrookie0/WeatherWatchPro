@@ -21,7 +21,7 @@ export default function Header() {
     setCurrentTime(now.toLocaleTimeString());
     
     // Format date as Day, Month Date, Year
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     setCurrentDate(now.toLocaleDateString(undefined, options));
   }
 

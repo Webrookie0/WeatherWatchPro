@@ -1,6 +1,15 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { WeatherData, WeatherInterpretation } from "./types";
+import {
+  WeatherData,
+  WeatherInterpretation,
+  ComfortLevel,
+  WeatherStatus,
+  PressureTrend,
+  WeatherIndication,
+  HistoricalData,
+  ChartDataPoint
+} from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
