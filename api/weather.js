@@ -1,7 +1,6 @@
 // Simple serverless API endpoint for Vercel deployment
 // This eliminates Rollup dependencies
-import pkg from '@neondatabase/serverless';
-const { neon } = pkg;
+import { neon } from '@neondatabase/serverless';
 
 // Create database client - no need to connect/disconnect with neon()
 const sql = neon(process.env.DATABASE_URL);
