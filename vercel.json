@@ -18,6 +18,10 @@
   ],
   "routes": [
     {
+      "src": "/api/test",
+      "dest": "/api/test.js"
+    },
+    {
       "src": "/api/weather/current",
       "dest": "/api/weather/current.js"
     },
