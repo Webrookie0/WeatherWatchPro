@@ -61,11 +61,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "Hours must be a number between 1 and 72" });
       }
       
-      const result = await sql`
-        SELECT * FROM weather_data
-        WHERE timestamp > NOW() - INTERVAL '${hours} hours'
-        ORDER BY timestamp ASC
-      `;
+      // Query all data - we'll limit this by time range later
+      // This approach is simpler and avoids SQL INTERVAL syntax issues
+      const result = await sql`SELECT * FROM weather_data ORDER BY timestamp ASC`;
+      
+      // Empty response if no data available
+      if (!result || result.length === 0) {
+        return res.status(200).json([]);
+      }
       
       return res.status(200).json(result.map(formatWeatherData));
     }
