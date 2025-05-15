@@ -1,8 +1,9 @@
 // Dedicated serverless function for current weather data
-import { createClient } from '@neondatabase/serverless';
+import pkg from '@neondatabase/serverless';
+const { neon } = pkg;
 
 // Create database client
-const client = createClient(process.env.DATABASE_URL);
+const client = neon(process.env.DATABASE_URL);
 
 // Utility to format weather data
 function formatWeatherData(rawData) {
