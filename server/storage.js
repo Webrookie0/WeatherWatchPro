@@ -1,15 +1,9 @@
-import { InsertWeatherData, WeatherData, weatherData } from "@shared/schema";
-import { db } from "./db";
+import { InsertWeatherData, WeatherData, weatherData } from "../shared/schema.js";
+import { db } from "./db.js";
 import { eq, desc, gte } from "drizzle-orm";
 
-export interface IStorage {
-  saveWeatherData(data: InsertWeatherData): Promise<WeatherData>;
-  getCurrentWeatherData(): Promise<WeatherData | undefined>;
-  getHistoricalData(hours: number): Promise<WeatherData[]>;
-}
-
-export class DatabaseStorage implements IStorage {
-  async saveWeatherData(data: InsertWeatherData): Promise<WeatherData> {
+export class DatabaseStorage {
+  async saveWeatherData(data) {
     // Convert numeric fields to strings for database compatibility
     const dataToInsert = {
       ...data,
@@ -29,7 +23,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getCurrentWeatherData(): Promise<WeatherData | undefined> {
+  async getCurrentWeatherData() {
     // Get the most recent data
     const results = await db
       .select()
@@ -40,7 +34,7 @@ export class DatabaseStorage implements IStorage {
     return results.length > 0 ? results[0] : undefined;
   }
 
-  async getHistoricalData(hours: number = 24): Promise<WeatherData[]> {
+  async getHistoricalData(hours = 24) {
     const now = new Date();
     const earliestTime = new Date(now.getTime() - hours * 60 * 60 * 1000);
     
