@@ -44,9 +44,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: "Hours must be a number between 1 and 72" });
     }
     
+    // Construct the interval string safely after validation
+    const intervalString = `${hours} hours`;
+
     const result = await sql`
       SELECT * FROM weather_data
-      WHERE timestamp > NOW() - INTERVAL '${hours} hours'
+      WHERE timestamp > NOW() - INTERVAL '${sql.unsafe(intervalString)}'
       ORDER BY timestamp ASC
     `;
     
