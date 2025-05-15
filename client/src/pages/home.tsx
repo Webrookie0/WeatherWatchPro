@@ -141,7 +141,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <GaugeDisplay
               type="temperature_dht"
-              value={currentData?.temperature_dht}
+              value={currentData?.temperature_dht ? Number(currentData.temperature_dht) : undefined}
               min={0}
               max={50}
               label="Temperature (DHT11)"
@@ -150,7 +150,7 @@ export default function Home() {
             />
             <GaugeDisplay
               type="temperature_bmp"
-              value={currentData?.temperature_bmp}
+              value={currentData?.temperature_bmp ? Number(currentData.temperature_bmp) : undefined}
               min={0}
               max={50}
               label="Temperature (BMP180)"
@@ -159,7 +159,7 @@ export default function Home() {
             />
             <GaugeDisplay
               type="humidity"
-              value={currentData?.humidity}
+              value={currentData?.humidity ? Number(currentData.humidity) : undefined}
               min={0}
               max={100}
               label="Humidity"
@@ -168,7 +168,7 @@ export default function Home() {
             />
             <GaugeDisplay
               type="pressure"
-              value={currentData?.pressure}
+              value={currentData?.pressure ? Number(currentData.pressure) : undefined}
               min={980}
               max={1040}
               label="Pressure"
