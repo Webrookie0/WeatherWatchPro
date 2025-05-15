@@ -2,8 +2,8 @@
 import pkg from '@neondatabase/serverless';
 const { neon } = pkg;
 
-// Create database client
-const client = neon(process.env.DATABASE_URL);
+// Create database client - no need to connect/disconnect with neon()
+const sql = neon(process.env.DATABASE_URL);
 
 // Utility to format weather data
 function formatWeatherData(rawData) {
@@ -39,27 +39,21 @@ export default async function handler(req, res) {
   }
   
   try {
-    // Connect to the database
-    await client.connect();
-    
     const hours = req.query.hours ? parseInt(req.query.hours) : 24;
     
     if (isNaN(hours) || hours <= 0 || hours > 72) {
       return res.status(400).json({ message: "Hours must be a number between 1 and 72" });
     }
     
-    const result = await client.query(`
+    const result = await sql`
       SELECT * FROM weather_data
       WHERE timestamp > NOW() - INTERVAL '${hours} hours'
       ORDER BY timestamp ASC
-    `);
+    `;
     
-    return res.status(200).json(result.rows.map(formatWeatherData));
+    return res.status(200).json(result.map(formatWeatherData));
   } catch (error) {
     console.error("API error:", error);
     return res.status(500).json({ message: "Internal server error", error: error.message });
-  } finally {
-    // Close the database connection
-    await client.end();
   }
 } 
