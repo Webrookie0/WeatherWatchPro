@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, log } from "./vite.js";
 import http from 'http';
@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse = undefined;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -40,7 +40,7 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(app);
 
-  app.use((err, _req, res, _next) => {
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
@@ -60,7 +60,7 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      log(`Development server (from server/index.js) listening on http://localhost:${port}`);
+      log(`Development server (from server/index.ts) listening on http://localhost:${port}`);
     });
   }
 })();
