@@ -1,6 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -13,7 +13,7 @@ const char* ssid = "YOUR_WIFI_SSID";     // Replace with your WiFi SSID
 const char* password = "YOUR_WIFI_PASSWORD"; // Replace with your WiFi password
 
 // === Server configuration ===
-const char* serverUrl = "http://YOUR_SERVER_URL:5000/api/weather"; // Replace with your server URL
+const char* serverUrl = "https://weatherwatchpro-kebyqwc06-webrookie0s-projects.vercel.app/api/weather"; // USER: REPLACE THIS WITH YOUR EXACT VERCEL URL (try without trailing slash first)
 
 // === Pin configuration ===
 #define DHTPIN D5        // GPIO14 on ESP8266
@@ -181,7 +181,6 @@ void readAndDisplaySensorData() {
 }
 
 void sendDataToServer() {
-  // Only proceed if WiFi is connected
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi not connected. Cannot send data.");
     return;
@@ -252,39 +251,57 @@ void sendDataToServer() {
   
   Serial.println("Sending data to server: " + jsonString);
   
-  // Create HTTP client
-  WiFiClient client;
+  // Create WiFiClientSecure object
+  WiFiClientSecure clientSecure;
+
+  // IMPORTANT: For many public sites, you might not need to do this,
+  // but if you get SSL errors (often -1, or specific SSL codes),
+  // you might need to set the client to insecure mode for testing.
+  // THIS IS NOT RECOMMENDED FOR PRODUCTION due to security risks.
+  // clientSecure.setInsecure(); // Uncomment for testing if SSL handshake fails
+
+  // Or, to properly verify, you might need to add a fingerprint or root CA
+  // Example (fingerprint is just a placeholder):
+  // clientSecure.setFingerprint("AA BB CC DD EE FF GG HH II JJ KK LL MM NN OO PP QQ RR SS TT");
+  // For Vercel, it typically uses Let's Encrypt certificates, which are usually trusted by ESP8266 core libs.
+
   HTTPClient http;
-  
-  // Begin HTTP request
-  http.begin(client, serverUrl);
-  http.addHeader("Content-Type", "application/json");
-  
-  // Send POST request
-  int httpResponseCode = http.POST(jsonString);
-  
-  // Check response
-  if (httpResponseCode > 0) {
-    String response = http.getString();
-    Serial.println("HTTP Response code: " + String(httpResponseCode));
-    Serial.println("Response: " + response);
-    
-    // Display success on OLED
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Data sent successfully!");
-    display.println("Response code: " + String(httpResponseCode));
-    display.display();
+
+  Serial.print("[HTTP] begin...\n");
+  // Begin HTTP request with WiFiClientSecure
+  if (http.begin(clientSecure, serverUrl)) {  // Pass clientSecure here
+    http.addHeader("Content-Type", "application/json");
+
+    Serial.print("[HTTP] POST...\n");
+    // Send POST request
+    int httpResponseCode = http.POST(jsonString);
+
+    if (httpResponseCode > 0) {
+      Serial.printf("[HTTP] POST... code: %d\n", httpResponseCode);
+      String response = http.getString();
+      Serial.println("Response: " + response);
+      // Display success on OLED
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("Data sent successfully!");
+      display.println("Response code: " + String(httpResponseCode));
+      display.display();
+    } else {
+      Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpResponseCode).c_str());
+      // Display error on OLED
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("HTTP Error!");
+      display.println("Code: " + String(httpResponseCode));
+      display.display();
+    }
+    http.end();
   } else {
-    Serial.println("Error on HTTP request: " + String(httpResponseCode));
-    
-    // Display error on OLED
+    Serial.printf("[HTTP] Unable to connect\n");
+    // Display error on OLED for connection failure
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("HTTP Error!");
-    display.println("Code: " + String(httpResponseCode));
+    display.println("Connection failed!");
     display.display();
   }
-  
-  http.end();
 }
