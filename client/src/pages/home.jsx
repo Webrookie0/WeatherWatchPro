@@ -11,29 +11,20 @@ import HistoryChart from "@/components/dashboard/history-chart";
 import WeatherIndicator from "@/components/dashboard/weather-indicator";
 import DeviceInfo from "@/components/dashboard/device-info";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Cloud, CloudRain, Sun, Thermometer, Droplets, Gauge, Info, Signal, Clock } from "lucide-react";
+import { Cloud, CloudRain, Sun, Thermometer, Droplets, Gauge, Info, Signal, Clock, RefreshCw } from "lucide-react";
 
 export default function Home() {
   // Fetch latest weather data
-  const { data: currentData, isLoading: isLoadingCurrent, refetch: refetchCurrent } = useQuery({
+  const { data: currentData, isLoading: isLoadingCurrent, refetch: refetchCurrent, isFetching: isRefreshingCurrent } = useQuery({
     queryKey: ['/api/weather/current'],
   });
 
   // Fetch historical weather data
-  const { data: historicalData, isLoading: isLoadingHistory } = useQuery({
+  const { data: historicalData, isLoading: isLoadingHistory, isFetching: isRefreshingHistory } = useQuery({
     queryKey: ['/api/weather/history'],
   });
 
   const [lastUpdate, setLastUpdate] = useState(null);
-
-  // Set up automatic refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetchCurrent();
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, [refetchCurrent]);
 
   // Update lastUpdate time when we get new data
   useEffect(() => {
@@ -114,11 +105,30 @@ export default function Home() {
       <Header />
 
       <main className="flex-grow container mx-auto px-4 py-6">
-        {/* Connection Status */}
-        <ConnectionStatus 
-          isConnected={!!currentData && !isLoadingCurrent}
-          lastUpdate={lastUpdate}
-        />
+        {/* Connection Status with Auto-refresh Indicator */}
+        <div className="flex items-center justify-between mb-6">
+          <ConnectionStatus 
+            isConnected={!!currentData && !isLoadingCurrent}
+            lastUpdate={lastUpdate}
+          />
+          <div className="flex items-center gap-2 text-sm">
+            <span className={`${isRefreshingCurrent || isRefreshingHistory ? 'text-blue-500' : 'text-gray-400'}`}>
+              Auto-refreshing
+            </span>
+            <RefreshCw 
+              className={`h-4 w-4 ${isRefreshingCurrent || isRefreshingHistory ? 'animate-spin text-blue-500' : 'text-gray-400'}`} 
+            />
+            <button 
+              onClick={() => {
+                refetchCurrent();
+                setLastUpdate(new Date());
+              }}
+              className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs"
+            >
+              Refresh Now
+            </button>
+          </div>
+        </div>
 
         {/* Hero Section */}
         <div className="mb-8 p-6 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl shadow-lg text-white">

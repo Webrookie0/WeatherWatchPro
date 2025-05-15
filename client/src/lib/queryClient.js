@@ -38,13 +38,22 @@ export const getQueryFn =
     return await res.json();
   };
 
+// Helper function to determine if a query should auto-refresh
+const shouldAutoRefresh = (queryKey) => {
+  // Auto-refresh weather-related endpoints
+  if (typeof queryKey[0] === 'string' && queryKey[0].includes('/api/weather')) {
+    return true;
+  }
+  return false;
+};
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      refetchInterval: (query) => shouldAutoRefresh(query.queryKey) ? 10000 : false, // 10 seconds refresh for weather endpoints
+      refetchOnWindowFocus: (query) => shouldAutoRefresh(query.queryKey),
+      staleTime: (query) => shouldAutoRefresh(query.queryKey) ? 5000 : Infinity, // 5 seconds stale time for weather endpoints
       retry: false,
     },
     mutations: {

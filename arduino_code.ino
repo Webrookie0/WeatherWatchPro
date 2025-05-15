@@ -7,13 +7,15 @@
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_SH110X.h>
 #include <DHT.h>
+#include <WiFiClient.h>
 
 // === WiFi configuration ===
-const char* ssid = "YOUR_WIFI_SSID";     // Replace with your WiFi SSID
-const char* password = "YOUR_WIFI_PASSWORD"; // Replace with your WiFi password
+const char* ssid = "wpa";     // Replace with your WiFi SSID
+const char* password = "1234567890"; // Replace with your WiFi password
 
 // === Server configuration ===
-const char* serverUrl = "https://weatherwatchpro-kebyqwc06-webrookie0s-projects.vercel.app/api/weather"; // USER: REPLACE THIS WITH YOUR EXACT VERCEL URL (try without trailing slash first)
+// Important: This URL must match your latest deployed Vercel URL
+const char* serverUrl = "https://weatherwatchpro-lkqrb2gq4-webrookie0s-projects.vercel.app/api/weather";
 
 // === Pin configuration ===
 #define DHTPIN D5        // GPIO14 on ESP8266
@@ -33,6 +35,12 @@ bool bmp_available = false;
 // === Other variables ===
 unsigned long lastSendTime = 0;
 const unsigned long sendInterval = 30000; // Send data every 30 seconds
+unsigned long lastDisplayTime = 0;
+const unsigned long displayInterval = 2000; // Update display every 2 seconds
+bool isSending = false; // Flag to prevent multiple sends at once
+
+WiFiClient client;
+HTTPClient http;
 
 void setup() {
   Serial.begin(115200);
@@ -112,16 +120,22 @@ void setup() {
 void loop() {
   unsigned long currentMillis = millis();
   
-  // Read sensor data and display on OLED
-  readAndDisplaySensorData();
-  
-  // Check if it's time to send data to the server
-  if (currentMillis - lastSendTime >= sendInterval) {
-    lastSendTime = currentMillis;
-    sendDataToServer();
+  // Update the display more frequently than sending data
+  if (currentMillis - lastDisplayTime >= displayInterval) {
+    lastDisplayTime = currentMillis;
+    readAndDisplaySensorData();
   }
   
-  delay(2000);  // Small delay between readings for display updates
+  // Check if it's time to send data to the server and not already sending
+  if (!isSending && currentMillis - lastSendTime >= sendInterval) {
+    isSending = true; // Set flag to prevent multiple sends
+    lastSendTime = currentMillis;
+    sendDataToServer();
+    isSending = false; // Clear flag after send complete
+  }
+  
+  // Keep the main loop running without long delays
+  delay(100);
 }
 
 void readAndDisplaySensorData() {
@@ -182,8 +196,23 @@ void readAndDisplaySensorData() {
 
 void sendDataToServer() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi not connected. Cannot send data.");
-    return;
+    Serial.println("WiFi not connected. Attempting to reconnect...");
+    WiFi.begin(ssid, password);
+    
+    // Wait up to 5 seconds for reconnection
+    int reconnectAttempts = 0;
+    while (WiFi.status() != WL_CONNECTED && reconnectAttempts < 10) {
+      delay(500);
+      Serial.print(".");
+      reconnectAttempts++;
+    }
+    
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi reconnection failed. Cannot send data.");
+      return;
+    } else {
+      Serial.println("WiFi reconnected!");
+    }
   }
   
   // Read sensor data
@@ -251,57 +280,68 @@ void sendDataToServer() {
   
   Serial.println("Sending data to server: " + jsonString);
   
-  // Create WiFiClientSecure object
-  WiFiClientSecure clientSecure;
-
-  // IMPORTANT: For many public sites, you might not need to do this,
-  // but if you get SSL errors (often -1, or specific SSL codes),
-  // you might need to set the client to insecure mode for testing.
-  // THIS IS NOT RECOMMENDED FOR PRODUCTION due to security risks.
-  // clientSecure.setInsecure(); // Uncomment for testing if SSL handshake fails
-
-  // Or, to properly verify, you might need to add a fingerprint or root CA
-  // Example (fingerprint is just a placeholder):
-  // clientSecure.setFingerprint("AA BB CC DD EE FF GG HH II JJ KK LL MM NN OO PP QQ RR SS TT");
-  // For Vercel, it typically uses Let's Encrypt certificates, which are usually trusted by ESP8266 core libs.
-
-  HTTPClient http;
-
-  Serial.print("[HTTP] begin...\n");
-  // Begin HTTP request with WiFiClientSecure
-  if (http.begin(clientSecure, serverUrl)) {  // Pass clientSecure here
-    http.addHeader("Content-Type", "application/json");
-
-    Serial.print("[HTTP] POST...\n");
-    // Send POST request
-    int httpResponseCode = http.POST(jsonString);
-
-    if (httpResponseCode > 0) {
-      Serial.printf("[HTTP] POST... code: %d\n", httpResponseCode);
-      String response = http.getString();
-      Serial.println("Response: " + response);
-      // Display success on OLED
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.println("Data sent successfully!");
-      display.println("Response code: " + String(httpResponseCode));
-      display.display();
-    } else {
-      Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpResponseCode).c_str());
-      // Display error on OLED
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.println("HTTP Error!");
-      display.println("Code: " + String(httpResponseCode));
-      display.display();
-    }
-    http.end();
-  } else {
-    Serial.printf("[HTTP] Unable to connect\n");
-    // Display error on OLED for connection failure
+  // Use WiFiClientSecure for HTTPS connections
+  WiFiClientSecure secureClient;
+  // Skip certificate verification
+  secureClient.setInsecure();
+  
+  HTTPClient https;
+  
+  // Start connection and send HTTP header
+  https.setTimeout(15000); // 15 second timeout
+  
+  // Begin HTTP session
+  bool success = https.begin(secureClient, serverUrl);
+  if (!success) {
+    Serial.println("HTTPS setup failed");
+    return;
+  }
+  
+  // Add headers
+  https.addHeader("Content-Type", "application/json");
+  
+  // Send the request
+  Serial.println("Sending HTTPS POST request...");
+  int httpCode = https.POST(jsonString);
+  Serial.println("HTTPS status code: " + String(httpCode));
+  
+  // Check for successful response (200 or 201)
+  if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_CREATED) {
+    String response = https.getString();
+    Serial.println("Success! Response: " + response);
+    
+    // Update display with success
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("Connection failed!");
+    display.println("Data sent OK!");
+    display.println("Temp: " + String(temp_dht) + "C");
+    display.println("Humidity: " + String(humidity) + "%");
     display.display();
   }
+  else {
+    Serial.println("HTTP Error: " + String(httpCode));
+    
+    if (httpCode > 0) {
+      // Response received but with error
+      String response = https.getString();
+      Serial.println("Response: " + response);
+    } else {
+      // No response
+      Serial.println("Connection failed: " + https.errorToString(httpCode));
+    }
+    
+    // Show error on display
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("HTTP Error");
+    display.println("Code: " + String(httpCode));
+    display.display();
+  }
+  
+  // Clean up
+  https.end();
+  Serial.println("HTTPS connection closed");
+  
+  // Small delay after sending to prevent freezing
+  delay(500);
 }
