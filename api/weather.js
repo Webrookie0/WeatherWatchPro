@@ -61,14 +61,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "Hours must be a number between 1 and 72" });
       }
       
-      // Construct the query string manually for the interval part
-      const queryString = `
+      // Create a sql tagged template for the interval value
+      const intervalValue = sql`${hours} hours`;
+      
+      const result = await sql`
         SELECT * FROM weather_data
-        WHERE timestamp > NOW() - INTERVAL '${hours} hours'
+        WHERE timestamp > NOW() - INTERVAL ${intervalValue}
         ORDER BY timestamp ASC
       `;
-      
-      const result = await sql.query(queryString);
       
       return res.status(200).json(result.map(formatWeatherData));
     }
