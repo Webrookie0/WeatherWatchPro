@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 // import { createServer, type Server } from "http"; // Not needed after refactor
-import { storage } from "./storage.js"; // Added .js
+import { storage } from "./storage"; // Added .js
 import { insertWeatherDataSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";

@@ -1,5 +1,5 @@
 import { InsertWeatherData, WeatherData, weatherData } from "@shared/schema";
-import { db } from "./db.js";
+import { db } from "./db";
 import { eq, desc, gte } from "drizzle-orm";
 
 export interface IStorage {
